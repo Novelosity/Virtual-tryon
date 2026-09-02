@@ -1,0 +1,22 @@
+{
+  "name": "shopify-ai-virtual-try-on",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:dashboard && npm run build:widget",
+    "build:dashboard": "vite build",
+    "build:widget": "vite build --config vite.widget.config.js",
+    "preview": "vite preview",
+    "check": "node --check api/proxy.js"
+  },
+  "engines": { "node": ">=20" },
+  "dependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "formidable": "^3.5.2",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^6.1.0"
+  }
+}

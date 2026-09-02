@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -12,8 +15,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
+          # Keep in sync with engines.node (>=20) in package.json.
           node-version: 20
           cache: npm
       - run: npm ci
-      - run: npm run build
+      # Syntax-checks every first-party .js/.jsx under api/ and src/ plus both vite configs.
+      # Uses vite's bundled esbuild, so JSX parses (node --check cannot read .jsx).
       - run: npm run check
+      - run: npm run build
+      # Fails if either widget asset is missing/empty, if dist/index.html has no bundled entry,
+      # or if the widget IIFE still contains process.env (which throws in the storefront).
+      - run: npm run check:build

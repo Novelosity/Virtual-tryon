@@ -1,4 +1,20 @@
 node_modules/
+
+# Build output of `npm run build:dashboard` (vite build -> dist/). Vercel rebuilds it on deploy.
+dist/
+
+# NOTE: extensions/virtual-try-on/assets/ is deliberately NOT ignored. `npm run build:widget`
+# writes virtual-try-on.js / virtual-try-on.css there and `shopify app deploy` uploads whatever
+# is committed, so those two files must stay tracked or the storefront block ships with no code.
+
+# Secrets and local platform state
 .env
+.env.local
+.env*.local
+.vercel
+
+# Editor / assistant local state
+.claude/settings.local.json
+
 *.log
 .DS_Store

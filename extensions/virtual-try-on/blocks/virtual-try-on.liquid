@@ -1,31 +1,62 @@
+{% comment %}
+  AI Virtual Try-On app block. Renders the mount target plus a JSON config payload
+  consumed by assets/virtual-try-on.js (built from src/widget/main.jsx).
+  Every string value goes through `json` so merchant text and image URLs can never
+  produce an unparseable payload; the extra `replace` guards against a `</script>`
+  sequence in merchant text closing the block early. Variant ids are Shopify
+  integers, so they are quoted literally (a JSON object key must be a string, and
+  `json` would emit an unquoted number).
+  Variants without their own image fall back to the product image, and the block
+  renders nothing unless a product with at least one image is in scope, so the
+  widget always receives a usable image URL.
+{% endcomment %}
 {% liquid
-  assign current_variant = product.selected_or_first_available_variant
-  assign current_image = current_variant.featured_image | default: product.featured_image
+  assign vto_fallback_image = product.featured_image | default: product.featured_media.preview_image
+  assign vto_variant = product.selected_or_first_available_variant
+  assign vto_image = vto_variant.featured_image | default: vto_fallback_image
+  assign vto_initial_image = ''
+  if vto_image != blank
+    assign vto_initial_image = vto_image | image_url: width: 1600
+  endif
+  assign vto_button_color = block.settings.button_color | default: '#111111'
+  assign vto_button_text_color = block.settings.button_text_color | default: '#ffffff'
 %}
 
-<div
-  class="vto-react-root"
-  data-vto-react-root
-  data-product-title="{{ product.title | escape }}"
-  data-product-handle="{{ product.handle | escape }}"
-  data-initial-image="{{ current_image | image_url: width: 1600 }}"
-  style="--vto-color: {{ block.settings.button_color }}; --vto-text: {{ block.settings.button_text_color }};"
-  {{ block.shopify_attributes }}
->
-  <script type="application/json" data-vto-config>
-    { "variants": {
-      {% for variant in product.variants %}
-        "{{ variant.id }}": "{{ variant.featured_image | default: product.featured_image | image_url: width: 1600 }}"{% unless forloop.last %},{% endunless %}
-      {% endfor %}
-      },
-      "buttonLabel": {{ block.settings.button_label | json }},
-      "modalTitle": {{ block.settings.modal_title | json }},
-      "instructions": {{ block.settings.instructions | json }},
-      "consentText": {{ block.settings.consent_text | json }},
-      "generateLabel": {{ block.settings.generate_label | json }}
-    }
-  </script>
-</div>
+{%- if product != blank and vto_initial_image != blank -%}
+  <div
+    class="vto-react-root"
+    data-vto-react-root
+    data-product-title="{{ product.title | escape }}"
+    data-product-handle="{{ product.handle | escape }}"
+    data-initial-image="{{ vto_initial_image | escape }}"
+    style="--vto-color: {{ vto_button_color | escape }}; --vto-text: {{ vto_button_text_color | escape }};"
+    {{ block.shopify_attributes }}
+  >
+    <script type="application/json" data-vto-config>
+      {
+        "variants": {
+          {%- assign vto_comma = '' -%}
+          {%- for variant in product.variants -%}
+            {%- assign vto_variant_image = variant.featured_image | default: vto_fallback_image -%}
+            {%- if vto_variant_image != blank -%}
+              {{ vto_comma }}"{{ variant.id }}": {{ vto_variant_image | image_url: width: 1600 | json }}
+              {%- assign vto_comma = ',' -%}
+            {%- endif -%}
+          {%- endfor %}
+        },
+        "buttonLabel": {{ block.settings.button_label | default: 'Try it on with AI' | json | replace: '</', '<\/' }},
+        "modalTitle": {{ block.settings.modal_title | default: 'Virtual Try-On' | json | replace: '</', '<\/' }},
+        "instructions": {{ block.settings.instructions | default: 'Upload a clear, front-facing full-body photo with good lighting.' | json | replace: '</', '<\/' }},
+        "consentText": {{ block.settings.consent_text | default: 'I consent to my photo being processed to create this try-on. The store does not retain the upload.' | json | replace: '</', '<\/' }},
+        "generateLabel": {{ block.settings.generate_label | default: 'Generate my try-on' | json | replace: '</', '<\/' }}
+      }
+    </script>
+  </div>
+{%- elsif request.design_mode -%}
+  <p class="vto-note" {{ block.shopify_attributes }}>
+    AI Virtual Try-On needs a product with at least one image. Add this block to a section on a product template.
+  </p>
+{%- endif -%}
 
 {% schema %}
 {

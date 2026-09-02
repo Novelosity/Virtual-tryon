@@ -9,7 +9,9 @@
     "build:dashboard": "vite build",
     "build:widget": "vite build --config vite.widget.config.js",
     "preview": "vite preview",
-    "check": "node --check api/proxy.js"
+    "check": "node -e \"import('vite').then(async({transformWithEsbuild})=>{const fs=await import('node:fs/promises');const files=['vite.config.js','vite.widget.config.js'];for(const d of ['api','src'])for(const f of await fs.readdir(d,{recursive:true}))if(/[.](jsx?|mjs)$/.test(f))files.push(d+'/'+f);for(const f of files){await transformWithEsbuild(await fs.readFile(f,'utf8'),f);console.log('syntax ok: '+f)}}).catch(e=>{console.error(String(e.message||e));process.exit(1)})\"",
+    "check:build": "node -e \"import('node:fs/promises').then(async fs=>{const read=async f=>fs.readFile(f,'utf8').catch(()=>'');const bad=[];for(const f of ['dist/index.html','extensions/virtual-try-on/assets/virtual-try-on.js','extensions/virtual-try-on/assets/virtual-try-on.css'])if(!(await read(f)).trim())bad.push('missing or empty: '+f);if(!(await read('dist/index.html')).includes('/assets/'))bad.push('dist/index.html does not link a bundled entry script');if((await read('extensions/virtual-try-on/assets/virtual-try-on.js')).includes('process.env'))bad.push('widget bundle references process.env, it would throw in the storefront');for(const m of bad)console.error(m);if(bad.length)process.exit(1);console.log('build output ok')})\"",
+    "validate": "npm run check && npm run build && npm run check:build"
   },
   "engines": { "node": ">=20" },
   "dependencies": {

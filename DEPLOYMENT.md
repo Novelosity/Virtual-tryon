@@ -23,7 +23,16 @@ Stage files explicitly rather than with `git add .`. `shopify.app.toml` belongs 
    - `OPENROUTER_IMAGE_MODEL` = `openai/gpt-image-2`
    - `SHOPIFY_API_SECRET` = the client secret of the Shopify app whose `client_id` is in `shopify.app.toml`
    - `MAX_UPLOAD_MB` = `4`
-3. Deploy, confirm the dashboard page loads, and copy the production URL (for example `https://virtual-try-on.vercel.app`). That URL is `<APP_URL>` below.
+
+   A serverless function reads these from the deployment it was built into, so adding or editing one takes effect only on the **next** deploy — redeploy after any change here.
+3. Deploy, then find the **production alias** — the host you will put in `shopify.app.toml`. Do not assume it is `https://<project>.vercel.app`: that subdomain is globally unique across all of Vercel and may already belong to a stranger. Run `vercel project ls` and take the "Latest Production URL" column, then verify that exact host answers as your app before committing it:
+
+   ```bash
+   curl -s -o /dev/null -w '%{http_code}\n' https://YOUR-HOST/          # expect 200
+   curl -s -w '\n%{http_code}\n' https://YOUR-HOST/api/proxy            # expect {"error":"Method not allowed."} 405
+   ```
+
+   A `302` to `vercel.com/sso-api` means Deployment Protection covers that host — see Troubleshooting. A `404` on `/api/proxy` with a `200` on `/` means the host serves somebody else's project. The verified host is `<APP_URL>` below.
 4. **Check the function duration limit.** Image generation can take about a minute, so the function must be allowed to run longer than the proxy's own upstream timeouts, which are sequential: up to 15s to download the product image, then up to 90s for the OpenRouter call — 105s worst case. `vercel.json` therefore sets `maxDuration: 120` for `api/proxy.js`. Vercel's published function limits (checked 2026-09-02) list 300s as both the Hobby default and maximum with fluid compute enabled — the default for new projects — and 300s default with a higher maximum on Pro/Enterprise, so 120s should be permitted. Verify it against your own plan and project settings rather than assuming: if the platform caps the function below 120s, generation is killed part-way through and the request fails with a 504 (`FUNCTION_INVOCATION_TIMEOUT`).
 
 Vercel also caps a function request or response body at 4.5 MB, so keep `MAX_UPLOAD_MB` at 4 or below.
@@ -99,7 +108,11 @@ Install the app using the link shown by the CLI or the Dev Dashboard, then go to
 
 **Button does nothing, or `/apps/virtual-try-on` returns 404.** The `[app_proxy]` block is missing, uses a different `prefix`/`subpath`, or has not been deployed. Test directly: open `https://YOUR-SHOP.myshopify.com/apps/virtual-try-on` — a 404 page means Shopify has no proxy registered at that path. Fix `shopify.app.toml` and run `shopify app deploy`.
 
-**401 `Invalid Shopify request.`** `SHOPIFY_API_SECRET` in Vercel is not the client secret of the app whose `client_id` is in `shopify.app.toml` (wrong app, or the secret was rotated). Every request fails signature verification until it matches. Update it in Vercel and redeploy.
+**Try-on fails for every shopper and the Vercel function log is empty.** Vercel Deployment Protection is intercepting the request before it reaches the function. `curl -si https://YOUR-HOST/api/proxy | head -3`: a `302` with `Location: https://vercel.com/sso-api?...` confirms it. Shopify's App Proxy is an unauthenticated server-to-server POST — it holds no Vercel session, cannot follow that redirect, and never sends custom headers, so Protection Bypass for Automation (`x-vercel-protection-bypass`) does not help either.
+
+Protection does not cover every host equally. With `ssoProtection` set to `all_except_custom_domains` (`vercel project protection --json` prints the current setting), this project's `<project>-<team>.vercel.app` alias 302s while its production alias answers normally — which is why the alias in `shopify.app.toml` is the one from `vercel project ls`, verified with the curl in section B, step 3. If your production alias is also gated, either attach a custom domain or turn protection off for production (Project → Settings → Deployment Protection → Vercel Authentication, or `vercel project protection disable --sso`, which switches it off for previews too).
+
+**401 `Invalid Shopify request.`** `SHOPIFY_API_SECRET` in Vercel is not the client secret of the app whose `client_id` is in `shopify.app.toml` (wrong app, or the secret was rotated). Every request fails signature verification until it matches. Update it in Vercel and redeploy. Note that an unsigned `curl -X POST` also returns this 401, so a 401 from your own testing proves nothing about the secret — `verify()` returns false identically for a missing signature and a missing secret. Only a real signed storefront request proves the secret matches.
 
 **400 with an upload message.** Wrong file type (JPG/PNG/WebP only), file larger than `MAX_UPLOAD_MB`, consent not accepted, or a product image hosted somewhere other than the Shopify CDN or the shop domain — the proxy refuses other hosts.
 

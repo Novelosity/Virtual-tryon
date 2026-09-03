@@ -27,11 +27,11 @@ api_version = "2026-07"
 scopes = ""
 
 [auth]
-redirect_urls = [ "https://virtual-tryon-novelosity-s-projects.vercel.app/api/auth" ]
+redirect_urls = [ "https://virtual-tryon-liart.vercel.app/api/auth" ]
 
 [app_proxy]
 # prefix + subpath => storefront path /apps/virtual-try-on, which the widget POSTs to.
-url = "https://virtual-tryon-novelosity-s-projects.vercel.app/api/proxy"
+url = "https://virtual-tryon-liart.vercel.app/api/proxy"
 subpath = "virtual-try-on"
 prefix = "apps"
 

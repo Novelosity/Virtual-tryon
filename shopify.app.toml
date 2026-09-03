@@ -1,10 +1,15 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "f5af56f9dc71517699b187982064ef46"
-# All three URLs below must stay on the same host: this project's Vercel production domain.
-# Note that virtual-tryon.vercel.app belongs to a different Vercel account (it serves a default
-# "Create Next App" page), so the production alias is the team-suffixed one, not the bare slug.
-application_url = "https://virtual-tryon-novelosity-s-projects.vercel.app"
+# All three URLs below must stay on the same host: this project's Vercel production alias.
+# It is virtual-tryon-liart.vercel.app, not the bare slug and not the team-suffixed alias:
+#  - virtual-tryon.vercel.app belongs to a different Vercel account (it serves a default
+#    "Create Next App" page), so Vercel assigned this project the random "-liart" suffix instead;
+#  - virtual-tryon-novelosity-s-projects.vercel.app is covered by Vercel Deployment Protection and
+#    302-redirects to vercel.com/sso-api, which the App Proxy cannot follow — Shopify's
+#    server-to-server POST has no Vercel session and would get the redirect instead of JSON.
+# The production alias itself is exempt from that protection, which is why only it works here.
+application_url = "https://virtual-tryon-liart.vercel.app"
 # Storefront-only app: the admin dashboard is a static Vite page with no App Bridge and no
 # session-token auth, so it cannot run inside the Shopify admin iframe.
 embedded = false
@@ -32,4 +37,6 @@ prefix = "apps"
 
 [build]
 include_config_on_deploy = true
-automatically_update_urls_on_dev = true
+# false on purpose: this app declares no local web process, so `shopify app dev` cannot serve it and
+# would only overwrite application_url with a throwaway tunnel host, silently breaking the live proxy.
+automatically_update_urls_on_dev = false

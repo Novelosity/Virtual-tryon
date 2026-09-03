@@ -1,10 +1,10 @@
 # Learn more about configuring your app at https://shopify.dev/docs/apps/tools/cli/configuration
 
 client_id = "f5af56f9dc71517699b187982064ef46"
-# PLACEHOLDER HOST: replace every "shopify-ai-virtual-try-on.vercel.app" below with the real
-# Vercel production domain. application_url, [auth].redirect_urls and [app_proxy].url must
-# all use the same host.
-application_url = "https://shopify-ai-virtual-try-on.vercel.app"
+# All three URLs below must stay on the same host: this project's Vercel production domain.
+# Note that virtual-tryon.vercel.app belongs to a different Vercel account (it serves a default
+# "Create Next App" page), so the production alias is the team-suffixed one, not the bare slug.
+application_url = "https://virtual-tryon-novelosity-s-projects.vercel.app"
 # Storefront-only app: the admin dashboard is a static Vite page with no App Bridge and no
 # session-token auth, so it cannot run inside the Shopify admin iframe.
 embedded = false
@@ -22,11 +22,11 @@ api_version = "2026-07"
 scopes = ""
 
 [auth]
-redirect_urls = [ "https://shopify-ai-virtual-try-on.vercel.app/api/auth" ]
+redirect_urls = [ "https://virtual-tryon-novelosity-s-projects.vercel.app/api/auth" ]
 
 [app_proxy]
 # prefix + subpath => storefront path /apps/virtual-try-on, which the widget POSTs to.
-url = "https://shopify-ai-virtual-try-on.vercel.app/api/proxy"
+url = "https://virtual-tryon-novelosity-s-projects.vercel.app/api/proxy"
 subpath = "virtual-try-on"
 prefix = "apps"
 
